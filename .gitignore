@@ -268,3 +268,4 @@
   window.__valentine = { renderGallery, pins, saveMessage };
 
 })();
+<a href="https://facebook.com/intent/tweet?text=Check out this Valentine card app!&url=https://your-github-pages-url" target="_blank">Share on Facebook</a>
