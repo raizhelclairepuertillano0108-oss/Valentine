@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valentine Card — Open When Ready</title>
+
+  <!-- Google Fonts (elegant script) -->
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS for map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Canvas for falling hearts -->
+    <canvas id="hearts-canvas"></canvas>
+
+    <header class="topbar">
+      <h1>For My Love</h1>
+      <div class="controls">
+        <label class="music-toggle">
+          <input id="musicToggle" type="checkbox" />
+          Soft Piano
+        </label>
+        <button id="openEnvelopeBtn" class="btn">Open Envelope</button>
+        <button id="generatePoemBtn" class="btn">Generate Secret Poem</button>
+      </div>
+    </header>
+
+    <main class="main-grid">
+      <!-- Envelope -->
+      <section class="envelope-section">
+        <div id="envelope" class="envelope closed">
+          <div class="seal-layer">
+            <img id="waxSeal" src="assets/wax-seal-1.png" alt="wax seal" />
+          </div>
+          <div class="envelope-flap"></div>
+          <div class="letter">
+            <div id="messageDisplay" class="messageDisplay" contenteditable="true" spellcheck="false">
+              Type your message here...
+            </div>
+          </div>
+        </div>
+        <div class="envelope-actions">
+          <label>Wax Seal:
+            <select id="waxSelect">
+              <option value="assets/wax-seal-1.png">Classic</option>
+              <option value="assets/wax-seal-2.png">Heart</option>
+              <option value="assets/wax-seal-3.png">Rose</option>
+            </select>
+          </label>
+
+          <label>Lock Envelope:
+            <input id="lockToggle" type="checkbox" />
+          </label>
+        </div>
+      </section>
+
+      <!-- Right column: gallery, timer, map -->
+      <section class="side-section">
+        <div class="gallery-card">
+          <h2>Shared Gallery</h2>
+          <div class="gallery-controls">
+            <input id="photoInput" type="file" accept="image/*" multiple />
+            <label>Floral Border:
+              <select id="floralSelect">
+                <option value="none">None</option>
+                <option value="floral-1">Soft Roses</option>
+                <option value="floral-2">Lavender</option>
+                <option value="floral-3">Vines</option>
+              </select>
+            </label>
+          </div>
+          <div id="gallery" class="gallery"></div>
+        </div>
+
+        <div class="countdown-card">
+          <h2>Countdown</h2>
+          <input id="targetDate" type="date" />
+          <div id="countdown" class="countdown">00d 00h 00m 00s</div>
+        </div>
+
+        <div class="map-card">
+          <h2>Memory Map</h2>
+          <small>Click the map to add a pin for a shared memory.</small>
+          <div id="map" class="map"></div>
+          <button id="clearPinsBtn" class="btn small">Clear Pins</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Audio (add assets/piano.mp3) -->
+    <audio id="pianoAudio" loop preload="auto">
+      <source src="assets/piano.mp3" type="audio/mpeg" />
+      Your browser does not support audio.
+    </audio>
+
+    <footer class="footer">
+      <small>Built with ♥ — Save locally or add to your site</small>
+    </footer>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="app.js"></script>
+</body>
+</html>
