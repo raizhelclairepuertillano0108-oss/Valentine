@@ -1,111 +1,270 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Valentine Card — Open When Ready</title>
+// Simple Valentine Card single-file app logic
+// Assumes index.html loads this file and styles.css, plus Leaflet and Google fonts
+(() => {
+  // --- Utilities & state ---
+  const $ = id => document.getElementById(id);
+  const piano = $('pianoAudio');
+  const musicToggle = $('musicToggle');
+  const openEnvelopeBtn = $('openEnvelopeBtn');
+  const envelope = document.getElementById('envelope');
+  const messageDisplay = $('messageDisplay');
+  const waxSelect = $('waxSelect');
+  const waxSealImg = $('waxSeal');
+  const lockToggle = $('lockToggle');
+  const photoInput = $('photoInput');
+  const galleryEl = $('gallery');
+  const floralSelect = $('floralSelect');
+  const targetDateInput = $('targetDate');
+  const countdownEl = $('countdown');
+  const generatePoemBtn = $('generatePoemBtn');
+  const mapEl = $('map');
+  const clearPinsBtn = $('clearPinsBtn');
 
-  <!-- Google Fonts (elegant script) -->
-  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  // persistent keys
+  const LS = {
+    message: 'valentine.message',
+    gallery: 'valentine.gallery',
+    wax: 'valentine.wax',
+    floral: 'valentine.floral',
+    targetDate: 'valentine.targetDate',
+    pins: 'valentine.pins',
+    locked: 'valentine.locked'
+  };
 
-  <!-- Leaflet CSS for map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  // --- Falling hearts canvas ---
+  const canvas = document.getElementById('hearts-canvas');
+  const ctx = canvas.getContext('2d');
+  let hearts = [];
+  function resizeCanvas(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+  window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <div id="app">
-    <!-- Canvas for falling hearts -->
-    <canvas id="hearts-canvas"></canvas>
+  function rand(min,max){ return Math.random()*(max-min)+min }
 
-    <header class="topbar">
-      <h1>For My Love</h1>
-      <div class="controls">
-        <label class="music-toggle">
-          <input id="musicToggle" type="checkbox" />
-          Soft Piano
-        </label>
-        <button id="openEnvelopeBtn" class="btn">Open Envelope</button>
-        <button id="generatePoemBtn" class="btn">Generate Secret Poem</button>
-      </div>
-    </header>
+  function createHeart(){
+    const size = rand(10,30);
+    return {
+      x: rand(0, canvas.width),
+      y: -rand(0, canvas.height*0.2),
+      vy: rand(0.3,1.2),
+      size,
+      sway: rand(-0.3,0.3),
+      hue: rand(330,360)
+    }
+  }
+  for(let i=0;i<40;i++) hearts.push(createHeart());
 
-    <main class="main-grid">
-      <!-- Envelope -->
-      <section class="envelope-section">
-        <div id="envelope" class="envelope closed">
-          <div class="seal-layer">
-            <img id="waxSeal" src="assets/wax-seal-1.png" alt="wax seal" />
-          </div>
-          <div class="envelope-flap"></div>
-          <div class="letter">
-            <div id="messageDisplay" class="messageDisplay" contenteditable="true" spellcheck="false">
-              Type your message here...
-            </div>
-          </div>
-        </div>
-        <div class="envelope-actions">
-          <label>Wax Seal:
-            <select id="waxSelect">
-              <option value="assets/wax-seal-1.png">Classic</option>
-              <option value="assets/wax-seal-2.png">Heart</option>
-              <option value="assets/wax-seal-3.png">Rose</option>
-            </select>
-          </label>
+  function drawHeart(x,y,size,hue){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.scale(size/40,size/40);
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.bezierCurveTo(12,-32,40,-22,40,0);
+    ctx.bezierCurveTo(40,28,5,42,0,60);
+    ctx.bezierCurveTo(-5,42,-40,28,-40,0);
+    ctx.bezierCurveTo(-40,-22,-12,-32,0,-12);
+    ctx.closePath();
+    ctx.fillStyle = `hsl(${hue} 90% 60% / 0.95)`;
+    ctx.fill();
+    ctx.restore();
+  }
 
-          <label>Lock Envelope:
-            <input id="lockToggle" type="checkbox" />
-          </label>
-        </div>
-      </section>
+  function animate(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let h of hearts){
+      h.y += h.vy;
+      h.x += Math.sin(h.y*0.02)*h.sway;
+      drawHeart(h.x, h.y, h.size, h.hue);
+      if(h.y > canvas.height + 60){
+        Object.assign(h, createHeart());
+        h.y = -rand(0,200);
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
 
-      <!-- Right column: gallery, timer, map -->
-      <section class="side-section">
-        <div class="gallery-card">
-          <h2>Shared Gallery</h2>
-          <div class="gallery-controls">
-            <input id="photoInput" type="file" accept="image/*" multiple />
-            <label>Floral Border:
-              <select id="floralSelect">
-                <option value="none">None</option>
-                <option value="floral-1">Soft Roses</option>
-                <option value="floral-2">Lavender</option>
-                <option value="floral-3">Vines</option>
-              </select>
-            </label>
-          </div>
-          <div id="gallery" class="gallery"></div>
-        </div>
+  // --- Music toggle ---
+  musicToggle.addEventListener('change', e => {
+    if(musicToggle.checked){
+      piano.volume = 0.55;
+      piano.play().catch(()=>{/* user gesture may be required */});
+    } else {
+      piano.pause();
+      piano.currentTime = 0;
+    }
+  });
 
-        <div class="countdown-card">
-          <h2>Countdown</h2>
-          <input id="targetDate" type="date" />
-          <div id="countdown" class="countdown">00d 00h 00m 00s</div>
-        </div>
+  // --- Envelope open/close & locking ---
+  function setWax(src){
+    waxSealImg.src = src;
+    localStorage.setItem(LS.wax, src);
+  }
+  waxSelect.addEventListener('change', e => setWax(e.target.value));
+  // load wax preference
+  const savedWax = localStorage.getItem(LS.wax);
+  if(savedWax) { waxSelect.value = savedWax; setWax(savedWax); }
 
-        <div class="map-card">
-          <h2>Memory Map</h2>
-          <small>Click the map to add a pin for a shared memory.</small>
-          <div id="map" class="map"></div>
-          <button id="clearPinsBtn" class="btn small">Clear Pins</button>
-        </div>
-      </section>
-    </main>
+  lockToggle.addEventListener('change', () => {
+    localStorage.setItem(LS.locked, lockToggle.checked ? '1' : '');
+    if(lockToggle.checked){
+      envelope.classList.add('closed');
+      envelope.classList.remove('open');
+    }
+  });
 
-    <!-- Audio (add assets/piano.mp3) -->
-    <audio id="pianoAudio" loop preload="auto">
-      <source src="assets/piano.mp3" type="audio/mpeg" />
-      Your browser does not support audio.
-    </audio>
+  openEnvelopeBtn.addEventListener('click', () => {
+    if(lockToggle.checked) {
+      alert("Envelope is locked with a wax seal. Uncheck 'Lock Envelope' to open.");
+      return;
+    }
+    envelope.classList.toggle('open');
+    envelope.classList.toggle('closed');
+  });
 
-    <footer class="footer">
-      <small>Built with ♥ — Save locally or add to your site</small>
-    </footer>
-  </div>
+  // --- Message persistence & poem generation ---
+  function saveMessage(){ localStorage.setItem(LS.message, messageDisplay.innerText); }
+  messageDisplay.addEventListener('input', saveMessage);
+  const savedMsg = localStorage.getItem(LS.message);
+  if(savedMsg) messageDisplay.innerText = savedMsg;
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  const poems = [
+    "In the hush of a rose-lit night, your name is my favorite sound.",
+    "Two hearts, one path — every memory with you blossoms into forever.",
+    "I found my home in the curve of your smile and the warmth of your hand.",
+    "If stars were letters, I'd write you every sky and call it yours.",
+    "You are the soft music that turns ordinary days into symphonies."
+  ];
+  generatePoemBtn.addEventListener('click', () => {
+    const p = poems[Math.floor(Math.random()*poems.length)];
+    messageDisplay.innerText = p;
+    saveMessage();
+    envelope.classList.add('open'); envelope.classList.remove('closed');
+  });
 
-  <script src="app.js"></script>
-</body>
-</html>
+  // --- Photo gallery upload & persistence ---
+  function renderGallery(){
+    galleryEl.innerHTML = '';
+    const data = JSON.parse(localStorage.getItem(LS.gallery) || '[]');
+    for(let i=0;i<data.length;i++){
+      const item = data[i];
+      const img = document.createElement('img');
+      img.src = item;
+      img.alt = 'memory';
+      img.dataset.index = i;
+      img.addEventListener('click', () => {
+        // toggle selection as main
+        const main = !img.classList.contains('main');
+        document.querySelectorAll('#gallery img').forEach(im=>im.classList.remove('main'));
+        if(main) img.classList.add('main');
+      });
+      galleryEl.appendChild(img);
+    }
+    // floral border
+    const fb = localStorage.getItem(LS.floral) || 'none';
+    galleryEl.className = 'gallery' + (fb === 'none' ? '' : ` flower-border-${fb}`);
+  }
+
+  photoInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    const stored = JSON.parse(localStorage.getItem(LS.gallery) || '[]');
+    for(const f of files){
+      const dataUrl = await fileToDataURL(f);
+      stored.push(dataUrl);
+    }
+    localStorage.setItem(LS.gallery, JSON.stringify(stored));
+    renderGallery();
+    e.target.value = '';
+  });
+
+  function fileToDataURL(file){ return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  })}
+
+  // floral selection persistence
+  floralSelect.addEventListener('change', e => {
+    const val = e.target.value === 'none' ? 'none' : e.target.value;
+    localStorage.setItem(LS.floral, val);
+    renderGallery();
+  });
+  const savedFloral = localStorage.getItem(LS.floral);
+  if(savedFloral){ floralSelect.value = savedFloral; renderGallery(); }
+
+  // load gallery
+  renderGallery();
+
+  // --- Countdown timer ---
+  function updateCountdown(){
+    const target = new Date(targetDateInput.value || localStorage.getItem(LS.targetDate) || new Date().toISOString().slice(0,10));
+    localStorage.setItem(LS.targetDate, targetDateInput.value);
+    const now = new Date();
+    const diff = Math.max(0, target - now);
+    const days = Math.floor(diff / (24*60*60*1000));
+    const hours = Math.floor(diff / (60*60*1000) % 24);
+    const mins = Math.floor(diff / (60*1000) % 60);
+    const secs = Math.floor(diff / 1000 % 60);
+    countdownEl.textContent = `${String(days).padStart(2,'0')}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
+  }
+  // init date input
+  const savedDate = localStorage.getItem(LS.targetDate) || (() => {
+    // default to next Feb 14 if current year passed
+    const now = new Date(), year = now.getMonth()>1 && now.getDate()>14 ? now.getFullYear()+1 : now.getFullYear();
+    return `${year}-02-14`;
+  })();
+  targetDateInput.value = savedDate;
+  setInterval(updateCountdown, 1000);
+  updateCountdown();
+  targetDateInput.addEventListener('change', () => { localStorage.setItem(LS.targetDate, targetDateInput.value); updateCountdown(); });
+
+  // --- Map (Leaflet) with pin saving ---
+  const map = L.map(mapEl, { attributionControl:true }).setView([20,0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  let pins = JSON.parse(localStorage.getItem(LS.pins) || '[]');
+
+  function renderPins(){
+    for(const layer of Object.values(map._layers || {})){
+      if(layer?.options?.isPin) map.removeLayer(layer);
+    }
+    pins.forEach(p => {
+      const m = L.marker([p.lat,p.lng], { title: p.note }).addTo(map);
+      m.options.isPin = true;
+      m.bindPopup(`<b>${p.note || 'Memory'}</b><br><small>${new Date(p.t).toLocaleString()}</small>`);
+    });
+  }
+  renderPins();
+
+  map.on('click', (e) => {
+    const note = prompt('Name this memory/location:', '');
+    if(note === null) return;
+    const p = { lat: e.latlng.lat, lng: e.latlng.lng, note: note || 'Memory', t: Date.now() };
+    pins.push(p);
+    localStorage.setItem(LS.pins, JSON.stringify(pins));
+    renderPins();
+  });
+
+  clearPinsBtn.addEventListener('click', () => {
+    if(!confirm('Clear all map pins?')) return;
+    pins = [];
+    localStorage.removeItem(LS.pins);
+    renderPins();
+  });
+
+  // --- load some saved toggles ---
+  if(localStorage.getItem(LS.locked) === '1'){ lockToggle.checked = true; envelope.classList.add('closed'); }
+  if(localStorage.getItem(LS.wax)){ waxSelect.value = localStorage.getItem(LS.wax); setWax(localStorage.getItem(LS.wax)); }
+  if(localStorage.getItem(LS.floral)) { floralSelect.value = localStorage.getItem(LS.floral); }
+
+  // small helper to allow keyboard-enter to open envelope
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      openEnvelopeBtn.click();
+    }
+  });
+
+  // expose some debug to window
+  window.__valentine = { renderGallery, pins, saveMessage };
+
+})();
